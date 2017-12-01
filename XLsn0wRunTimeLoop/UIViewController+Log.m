@@ -25,8 +25,8 @@ static char *nameKey = "name";
  Selector（typedef struct objc_selector *SEL）:
  
  在运行时 Selectors 用来代表一个方法的名字。
- Selector 是一个在运行时被注册（或映射）的C类型字符串。S
- elector由编译器产生并且在当类被加载进内存时由运行时自动进行名字和实现的映射。
+ Selector 是一个在运行时被注册（或映射）的C类型字符串。
+ Selector 由编译器产生并且在当类被加载进内存时由运行时自动进行名字和实现的映射。
  
  Method （typedef struct objc_method *Method）:
  

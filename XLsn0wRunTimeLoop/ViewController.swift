@@ -10,7 +10,7 @@ import UIKit
 
 class ViewController: UIViewController {
     var thread : Thread?
-    let runTextView = UIScrollView()
+    let scrollView = UIScrollView()
     let btn = UIButton()
 
     override func viewDidLoad() {
@@ -19,9 +19,9 @@ class ViewController: UIViewController {
         
         self.name = "XLsn0w"
 
-        runTextView.frame = CGRect(x:100, y:200, width:200, height:200)
-        runTextView.backgroundColor = UIColor.red
-        self.view.addSubview(runTextView)
+        scrollView.frame = CGRect(x:100, y:200, width:200, height:200)
+        scrollView.backgroundColor = UIColor.red
+        self.view.addSubview(scrollView)
         
         btn.frame = CGRect(x:100, y:100, width:100, height:100)
         btn.backgroundColor = .yellow
@@ -31,11 +31,10 @@ class ViewController: UIViewController {
         
         self.observer()
         
-        //        self.thread = NSThread.init(target: self, selector:#selector(ViewController.run), object: nil)
-        //         self.thread?.start()
+        self.thread = Thread.init(target: self, selector:#selector(ViewController.run), object: nil)
+        self.thread?.start()
     }
-    
-    
+
     //*****************************************************在所有UI相应操作之前处理任务**********************
     @objc func btnclick() {
         print("点击了Btn")
@@ -67,36 +66,37 @@ class ViewController: UIViewController {
     
     //*****************************************************常驻线程**********************
     
-    func run() {
+    @objc func run() {
         
         print("run===========\(Thread.current)")
         //方法一
-        //        NSRunLoop.currentRunLoop().addPort(NSPort.init(), forMode:NSDefaultRunLoopMode)
+        RunLoop.current.add(Port.init(), forMode:RunLoopMode.defaultRunLoopMode)
         //方法二
-        //        NSRunLoop.currentRunLoop().runMode(NSDefaultRunLoopMode, beforeDate: NSDate.distantFuture())
+        RunLoop.current.run(mode: RunLoopMode.commonModes, before: NSDate.distantFuture)
         //方法三
-        //        NSRunLoop.currentRunLoop().runUntilDate(NSDate.distantFuture())
+        RunLoop.current.run(until: NSDate.distantFuture)
         
         //方法四 添加NSTimer
-        //        NSTimer.scheduledTimerWithTimeInterval(2.0, target: self, selector: #selector(ViewController.test), userInfo: nil, repeats: true)
-        
-        //        NSRunLoop.currentRunLoop().run()
+        Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(runloop), userInfo: nil, repeats: true)
+
+        RunLoop.current.run()
         
     }
     
     
     
     
-    //    override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?) {
-    //
-    //         self.performSelector(#selector(ViewController.test), onThread: self.thread!, withObject: nil, waitUntilDone: false)
-    //
-    //    }
-    //
-    //    func test()  {
-    //             print("test---------------\(NSThread.currentThread())")
-    //     }
-    //
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+    
+        self.perform(#selector(getter: ViewController.next), on: self.thread!, with: nil, waitUntilDone: false)
+    
+        }
+
+    func test()  {
+        print("test---------------\(Thread.current)")
+    }
+
+    
     /*
      如果没有实现添加NSPort或者NSTimer，会发现执行完run方法，线程就会消亡，后续再执行touchbegan方法无效。
      
@@ -106,16 +106,6 @@ class ViewController: UIViewController {
      
      可以发现执行完了run方法，这个时候再点击屏幕，可以不断执行test方法，因为线程self.thread一直常驻后台，等待事件加入其中，然后执行。
      */
-    
-    //*****************************************************常驻线程**********************
-    
-    
-    
-    
-    
-    //*****************************************************图片下载**********************
-    
-    
     
     //
     //    //由于图片渲染到屏幕需要消耗较多资源，为了提高用户体验，当用户滚动tableview的时候，只在后台下载图片，但是不显示图片，当用户停下来的时候才显示图片。
@@ -144,19 +134,15 @@ class ViewController: UIViewController {
     //
     //    }
     //
-    //    /*
-    //     上面的代码可以达到如下效果：
-    //
-    //     用户点击屏幕，在主线程中，三秒之后显示图片
-    //
-    //     但是当用户点击屏幕之后，如果此时用户又开始滚动textview，那么就算过了三秒，图片也不会显示出来，当用户停止了滚动，才会显示图片。
-    //
-    //     这是因为限定了方法setImage只能在NSDefaultRunLoopMode 模式下使用。而滚动textview的时候，程序运行在tracking模式下面，所以方法setImage不会执行。
-    // */
-    //
-    //
-    //*****************************************************图片下载**********************
+        /*
+         上面的代码可以达到如下效果：
     
+         用户点击屏幕，在主线程中，三秒之后显示图片
+    
+         但是当用户点击屏幕之后，如果此时用户又开始滚动textview，那么就算过了三秒，图片也不会显示出来，当用户停止了滚动，才会显示图片。
+    
+         这是因为限定了方法setImage只能在NSDefaultRunLoopMode 模式下使用。而滚动textview的时候，程序运行在tracking模式下面，所以方法setImage不会执行。
+     */
     
     /**
      解决滚动scrollView导致定时器失效
@@ -165,13 +151,15 @@ class ViewController: UIViewController {
         //RunLoop 解决滚动scrollView导致定时器失效
         //原因：因为当你滚动textview的时候，runloop会进入UITrackingRunLoopMode 模式，而定时器运行在defaultMode下面，系统一次只能处理一种模式的runloop，所以导致defaultMode下的定时器失效。
         //解决办法1：把定时器的runloop的model改为NSRunLoopCommonModes 模式，这个模式是一种占位mode，并不是真正可以运行的mode，它是用来标记一个mode的。默认情况下default和tracking这两种mode 都会被标记上NSRunLoopCommonModes 标签。改变定时器的mode为commonmodel，可以让定时器运行在defaultMode和trackingModel两种模式下，不会出现滚动scrollview导致定时器失效的故障
-        //[[NSRunLoop currentRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
+//        [[NSRunLoop currentRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
+        let timer = Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(runloop), userInfo: nil, repeats: true)
+        RunLoop.current.add(timer, forMode: RunLoopMode.commonModes)
         
         //解决办法2：使用GCD创建定时器，GCD创建的定时器不会受runloop的影响
     }
     
-    
-    func runloop() -> () {
+    /// @objc必须显式声明类是NSObject的子类，不然使用@objc修饰Swift类就会报错
+    @objc func runloop() -> () {
         
     }
 

@@ -10,6 +10,6 @@
 
 @interface UIViewController (Log)
 
-@property (nonatomic, copy) NSString *name;
+@property (nonatomic, copy) NSString *name;///copy一份对象 深拷贝
 
 @end
